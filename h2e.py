@@ -147,9 +147,11 @@ def create_note(entry):
         u'<?xml version="1.0" encoding="UTF-8"?>'
         u'<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">'
     )
-    content += (
-        u'<en-note>%s</en-note>' % to_enml(entry['content'], url=entry['url'])
-    )
+    content += u'<en-note>'
+    if entry['summary']:
+        content += u'%s<hr />' % entry['summary']
+    content += to_enml(entry['content'], url=entry['url'])
+    content += u'</en-note>'
     soup = BeautifulSoup(content)
     note.content = str(soup)
     attrs = Types.NoteAttributes(sourceURL=entry['url'])
