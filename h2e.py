@@ -213,15 +213,15 @@ def parse_config(filename):
 def command():
     """ コマンド実行
     """
-    today = datetime.date.today()
+    yesterday = datetime.date.today() - datetime.timedelta(days=1)
     parser = argparse.ArgumentParser(
         description=u'はてブエントリの記事本文をEvernoteに保存します')
     parser.add_argument('hatenaid', help=u'対象はてブのはてなユーザ名')
     parser.add_argument(
-        '--date', default=today.strftime('%Y%m%d'),
+        '--date', default=yesterday.strftime('%Y%m%d'),
         help=(
-            u'はてブの収集対象日、YYYYMMDD形式、デフォルト: 今日(%s)'
-            % today.strftime('%Y%m%d')
+            u'はてブの収集対象日、YYYYMMDD形式、デフォルト: 前日(%s)'
+            % yesterday.strftime('%Y%m%d')
         ))
     parser.add_argument(
         '--config', default='~/.h2e',
