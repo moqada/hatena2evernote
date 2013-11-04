@@ -6,6 +6,7 @@ import hashlib
 import os
 import re
 import requests
+import time
 import urllib
 from evernote.api.client import EvernoteClient
 from evernote.edam.type import ttypes as Types
@@ -48,11 +49,14 @@ def fetch_entries(username, date):
         res = requests.get(url)
         soup = BeautifulSoup(res.text)
         for entry in soup.findAll('entry'):
+            created = datetime.datetime.strptime(
+                entry.find('issued').text[:-6], '%Y-%m-%dT%H:%M:%S')
             entries.append({
                 'title': entry.find('title').text,
                 'summary': entry.find('summary').text or u'',
                 'url': entry.find('link', rel='related').get('href'),
                 'tags': [t.text for t in entry.findAll('dc:subject')],
+                'created': int(time.mktime(created.timetuple()) * 1000),
             })
         next_link = soup.find('link', rel='next')
         if next_link is not None:
@@ -157,6 +161,7 @@ def create_note(entry):
     attrs = Types.NoteAttributes(sourceURL=entry['url'])
     note.attributes = attrs
     note.tagNames = [e.encode('utf-8') for e in entry['tags']]
+    note.created = entry['created']
     note = img_to_resource(note)
     note_store.createNote(note)
     return note
