@@ -233,7 +233,7 @@ def command():
     parse_config(ns.config)
     # 収集処理実行
     entries = fetch_entries(ns.hatenaid, ns.date)
-    for i, entry in enumerate(entries):
+    for entry in entries:
         entry['content'] = fetch_readability(entry['url'])
         print u'Fetch:', entry['title'], entry['url']
         create_note(entry)
