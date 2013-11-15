@@ -73,9 +73,12 @@ def to_enml(content, url=''):
     enml = re.sub(r'<img(.*?)>', r'<img\1 />', content)
     # 許容されていない属性を削除する
     for attr in ENML_DISABLED_ATTRIBUTES:
-        enml = re.sub(r'(<\w+.*?)( %s=".*?")(.*?>)' % attr, r'\1\3', enml)
+        enml = re.sub(
+            r'(<\w+.*?)( %s=".*?")(.*?>)' % attr,
+            r'\1\3', enml, flags=re.DOTALL)
     # href の中身が空や相対パスだと怒られるので変換
-    enml = re.sub(r'(<a.*?)(href="")(.*?>)', r'\1href="#"\3', enml)
+    enml = re.sub(
+        r'(<a.*?)(href="")(.*?>)', r'\1href="#"\3', enml, flags=re.DOTALL)
     if url:
         pattrn = (
             r'\1href="%s\3"\4'
@@ -83,7 +86,8 @@ def to_enml(content, url=''):
         )
     else:
         pattrn = r'\1href="./"\4'
-    enml = re.sub(r'(<a.*?)(href="(/.*?)")(.*?>)', pattrn, enml)
+    enml = re.sub(
+        r'(<a.*?)(href="(/.*?)")(.*?>)', pattrn, enml, flags=re.DOTALL)
     # preにstyleを追加
     enml = re.sub(
         r'(<pre.*?>)',
