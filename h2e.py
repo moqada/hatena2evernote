@@ -140,6 +140,10 @@ def img_to_resource(note):
         content_type = res.headers.get('content-type', '').split(';')[0]
         if content_type.find('image/') != 0:
             continue
+        # IEからアップロードされた画像はContent-Typeがimage/pjpegになっていることがある
+        # この状態のままだとEvernote上でうまく表示されない
+        # see: http://blog.netandfield.com/shar/2009/04/imagepjpeg.html
+        content_type = content_type.replace('pjpeg', 'jpeg')
         md5 = hashlib.md5()
         md5.update(binary)
         binary_hash = md5.digest()
