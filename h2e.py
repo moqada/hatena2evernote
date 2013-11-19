@@ -31,9 +31,11 @@ ENML_ENABLED_TAGS = (
 )
 ENML_DISABLED_TAGS_REGEX = re.compile(
     r'<(/?)(?!(%s)(\s.*?)?>)\w+(\s.*?)?>' % '|'.join(ENML_ENABLED_TAGS))
+# http://dev.evernote.com/intl/jp/doc/articles/enml.php
+# name属性は使用できないとは明記していないが怒られた...
 ENML_DISABLED_ATTRIBUTES = (
     'rel', 'class', 'id', 'on\w*?', 'frame', 'rules', 'alt', 'datetime',
-    'accesskey', 'data', 'dynsrc', 'tabindex',
+    'accesskey', 'data', 'dynsrc', 'tabindex', 'name',
 )
 # 主に連携サービスのToken情報などを格納しているグローバル変数
 global_config = {}
