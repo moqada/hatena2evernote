@@ -16,7 +16,7 @@ try:
 except ImportError:
     from configparser import SafeConfigParser
 
-HATEBU_URL = 'http://b.hatena.ne.jp/%(username)s/atomfeed?date=%(date)s'
+HATEBU_URL = 'http://b.hatena.ne.jp/%(username)s/atomfeed'
 READABILITY_PARSER_API = (
     'https://readability.com/api/content/v1/parser?url=%(url)s&token=%(token)s'
 )
@@ -42,29 +42,57 @@ global_config = {}
 def fetch_entries(username, date):
     """ 指定日付のはてブフィードを取得
     """
-    url = HATEBU_URL % {'username': username, 'date': date}
-    entries = []
 
-    def get_entries(url):
+    def fetch_feed(url):
         print 'Fetch: ', url
         res = requests.get(url)
-        soup = BeautifulSoup(res.text)
+        return BeautifulSoup(res.text)
+
+    def get_date_entries(url, target_date, entries):
+        """ 対象日のエントリのみを取得する
+            フィードが対象日以前になるまでページネーションして収集を続ける
+        """
+        soup = fetch_feed(url)
         for entry in soup.findAll('entry'):
-            created = datetime.datetime.strptime(
-                entry.find('issued').text[:-6], '%Y-%m-%dT%H:%M:%S')
-            entries.append({
-                'title': entry.find('title').text,
-                'summary': entry.find('summary').text or u'',
-                'url': entry.find('link', rel='related').get('href'),
-                'tags': [t.text for t in entry.findAll('dc:subject')],
-                'created': int(time.mktime(created.timetuple()) * 1000),
-            })
+            entry = get_entry(entry)
+            entry_d = datetime.datetime.fromtimestamp(entry['created']).date()
+            if target_date < entry_d:
+                continue
+            elif target_date > entry_d:
+                return entries
+            entries.append(entry)
         next_link = soup.find('link', rel='next')
         if next_link is not None:
-            get_entries(next_link.get('href'))
+            get_date_entries(next_link.get('href'), target_date, entries)
 
-    get_entries(url)
-    return entries
+    def get_entry(soup_entry):
+        """ entry要素(BeautifulSoupオブジェクト)から必要な項目をまとめて返す
+        """
+        created = datetime.datetime.strptime(
+            soup_entry.find('issued').text[:-6], '%Y-%m-%dT%H:%M:%S')
+        return {
+            'title': soup_entry.find('title').text,
+            'summary': soup_entry.find('summary').text or u'',
+            'url': soup_entry.find('link', rel='related').get('href'),
+            'tags': [t.text for t in soup_entry.findAll('dc:subject')],
+            'created': int(time.mktime(created.timetuple())),
+        }
+
+    hb_entries = []
+    feed_url = HATEBU_URL % {'username': username}
+    soup = fetch_feed('%s?date=%s' % (feed_url, date))
+    # 対象日のエントリ数が20件以内ならそのまま日付フィードを取得
+    # 20件より多い場合は全体フィードからひたすら対象日のエントリを収集する
+    title = soup.find('title').text
+    if int(re.search(r'\((\d+)\)$', title).group(1)) <= 20:
+        for entry in soup.findAll('entry'):
+            hb_entries.append(get_entry(entry))
+    else:
+        get_date_entries(
+            feed_url,
+            datetime.datetime.strptime(date, '%Y%m%d').date(),
+            hb_entries)
+    return hb_entries
 
 
 def to_enml(content, url=''):
@@ -166,7 +194,8 @@ def create_note(entry):
     attrs = Types.NoteAttributes(sourceURL=entry['url'])
     note.attributes = attrs
     note.tagNames = [e.encode('utf-8') for e in entry['tags']]
-    note.created = entry['created']
+    # 時間がミリ秒単位になるので1000を乗算する
+    note.created = entry['created'] * 1000
     note = img_to_resource(note)
     note_store.createNote(note)
     return note
@@ -243,6 +272,7 @@ def command():
     parse_config(ns.config)
     # 収集処理実行
     entries = fetch_entries(ns.hatenaid, ns.date)
+    print u'Got %s entries' % len(entries)
     for entry in entries:
         entry['content'] = fetch_readability(entry['url'])
         print u'Fetch:', entry['title'], entry['url']
