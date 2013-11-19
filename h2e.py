@@ -81,10 +81,12 @@ def fetch_entries(username, date):
     hb_entries = []
     feed_url = HATEBU_URL % {'username': username}
     soup = fetch_feed('%s?date=%s' % (feed_url, date))
-    # 対象日のエントリ数が20件以内ならそのまま日付フィードを取得
+    # タイトルに件数表記があって対象日のエントリ数が20件以内ならそのまま日付フィードを取得
+    # (日付が変わってしばらくは日付指定フィードのタイトルに件数表記がない)
     # 20件より多い場合は全体フィードからひたすら対象日のエントリを収集する
     title = soup.find('title').text
-    if int(re.search(r'\((\d+)\)$', title).group(1)) <= 20:
+    match = re.search(r'\((\d+)\)$', title)
+    if match and int(match.group(1)) <= 20:
         for entry in soup.findAll('entry'):
             hb_entries.append(get_entry(entry))
     else:
