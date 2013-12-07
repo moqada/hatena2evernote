@@ -108,6 +108,11 @@ def to_enml(content, url=''):
         enml = re.sub(
             r'(<\w+.*?)( %s=".*?")(.*?>)' % attr,
             r'\1\3', enml, flags=re.DOTALL)
+    # width属性も不自然な要素だと怒られるようなので変換
+    for attr in ('width', 'height'):
+        enml = re.sub(
+            r'<(?!(img)\s.*?>)(\w+\s.*?)(%s=(\'.*?\'|".*?"))(.*?)>' % attr,
+            r'<\2\5>', enml, flags=re.DOTALL)
     # href の中身が空や相対パスだと怒られるので変換
     enml = re.sub(
         r'(<a.*?)(href="")(.*?>)', r'\1href="#"\3', enml, flags=re.DOTALL)
